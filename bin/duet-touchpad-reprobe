@@ -1,0 +1,42 @@
+#!/bin/sh
+# Reprobe only the unbound DOKING Duet 5 pointing-device USB interface.
+# This performs no USB reset, unbind, authorization toggle, or power change.
+
+iface=${1-}
+
+case "$iface" in
+  [0-9]*-[0-9]*:[0-9]*.[0-9]*) ;;
+  *) exit 0 ;;
+esac
+
+sys=/sys/bus/usb/devices/$iface
+dev=${iface%%:*}
+usb=/sys/bus/usb/devices/$dev
+
+[ -d "$sys" ] || exit 0
+[ -d "$usb" ] || exit 0
+[ "$(/bin/cat "$usb/idVendor" 2>/dev/null)" = 17ef ] || exit 0
+[ "$(/bin/cat "$usb/idProduct" 2>/dev/null)" = 613a ] || exit 0
+[ "$(/bin/cat "$sys/bInterfaceNumber" 2>/dev/null)" = 01 ] || exit 0
+[ "$(/bin/cat "$sys/bInterfaceClass" 2>/dev/null)" = 03 ] || exit 0
+[ "$(/bin/cat "$sys/bInterfaceSubClass" 2>/dev/null)" = 01 ] || exit 0
+[ "$(/bin/cat "$sys/bInterfaceProtocol" 2>/dev/null)" = 02 ] || exit 0
+[ "$(/bin/cat "$sys/authorized" 2>/dev/null)" = 1 ] || exit 0
+
+for delay in 0.5 1 2; do
+  [ -L "$sys/driver" ] && exit 0
+  /bin/sleep "$delay"
+  [ -d "$sys" ] || exit 0
+  [ -L "$sys/driver" ] && exit 0
+
+  printf '%s\n' "$iface" > /sys/bus/usb/drivers_probe 2>/dev/null || true
+  /bin/sleep 0.2
+
+  if [ -L "$sys/driver" ]; then
+    /usr/bin/logger -t duet-touchpad-reprobe "recovered $iface with interface-only drivers_probe"
+    exit 0
+  fi
+done
+
+/usr/bin/logger -t duet-touchpad-reprobe "unable to bind $iface after interface-only reprobes"
+exit 0

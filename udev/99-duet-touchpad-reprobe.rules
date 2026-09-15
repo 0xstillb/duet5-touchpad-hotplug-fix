@@ -1,0 +1,2 @@
+# DOKING Lenovo Duet 5 keyboard-cover touchpad: retry only failed interface 01.
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", ATTR{bInterfaceNumber}=="01", ATTR{bInterfaceClass}=="03", ATTR{bInterfaceSubClass}=="01", ATTR{bInterfaceProtocol}=="02", ATTRS{idVendor}=="17ef", ATTRS{idProduct}=="613a", RUN+="/bin/sh /usr/local/sbin/duet-touchpad-reprobe %k"
